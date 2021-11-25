@@ -1,5 +1,5 @@
 import { RegisterController } from './register'
-import { MissingParamError, InvalidParamError } from '../../errors'
+import { MissingParamError, InvalidParamError, ServerError } from '../../errors'
 import { CpfValidator } from './register-protocols'
 
 const makeCpfValidator = (): CpfValidator => {
@@ -92,5 +92,22 @@ describe('Register Controller', () => {
     }
     sut.handle(httpRequest)
     expect(cpfSpy).toHaveBeenCalledWith(httpRequest.body.cpf)
+  })
+
+  test('Should return 500 if cpfValidator throws', () => {
+    const { sut, cpfValidatorStub } = makeSut()
+    jest.spyOn(cpfValidatorStub, 'isValid').mockImplementationOnce(() => {
+      throw new Error()
+    })
+    const httpRequest = {
+      body: {
+        cpf: 'any_cpf',
+        phone: 'any_phone',
+        cep: 'any_cep'
+      }
+    }
+    const httpResponse = sut.handle(httpRequest)
+    expect(httpResponse.statusCode).toBe(500)
+    expect(httpResponse.body).toEqual(new ServerError())
   })
 })
